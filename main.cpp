@@ -37,6 +37,9 @@ void conn_handler( int client_socket )
 	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
 	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
 	const char *HELP_MESSAGE	= "HELP Commands avalible:\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
+	const char *BAD_COMMAND		= "INFO: That is not an avalible command\r\n";
+
+	const char *username = "user";
 
 	bool TERMINATE_RECEIVING = false;
 
@@ -53,16 +56,21 @@ void conn_handler( int client_socket )
 		buff[bytes] = '\0';
 
 		// TODO: HANDLE HERE THE CHANNELS AND SENDERS
+			
+		std::string query = buff;
 
 		if ( buff[0] == ':' ) {
-
-			if ( strcoll(buff, ":exit") == 13 ) {
+			
+			if ( query.find("exit") == 1 ) {
 				TERMINATE_RECEIVING = true;
 				sendall(BYE_MESSAGE, client_socket);
-			};
 
-			if ( strcoll(buff, ":help") == 13 ) {
+			} else if ( query.find("help") == 1 ) {
 				send(client_socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
+
+			} else {
+				send(client_socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
+
 			};
 
 		} else {
@@ -70,6 +78,7 @@ void conn_handler( int client_socket )
 			sendall(buff, client_socket);
 
 		};
+
 
 	};
 	
