@@ -28,7 +28,18 @@ int sendall( const char *MESSAGE, int actual_client )
 	return 0;
 }
 
-// TODO: Make a function to remove a client from the list
+int remcli( int actual_client ) {
+	
+	int array_size = CLIENTS.size();
+
+	for ( int x = 0; x < array_size; x++ ) {
+		if ( CLIENTS[x] == actual_client ) {
+			CLIENTS.erase(x);
+		};
+	};
+	
+	return 0;
+}
 
 void conn_handler( int client_socket )
 {
@@ -62,6 +73,7 @@ void conn_handler( int client_socket )
 		if ( buff[0] == ':' ) {
 
 			if ( query.find("exit") == 1 ) {
+				remcli(client_socket);
 				TERMINATE_RECEIVING = true;
 				sendall(BYE_MESSAGE, client_socket);
 				std::cout << "INFO: User disconnected" << std::endl;
