@@ -36,10 +36,10 @@ void conn_handler( int client_socket )
 
 	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
 	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
-	const char *HELP_MESSAGE	= "HELP Commands avalible:\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
-	const char *BAD_COMMAND		= "INFO: That is not an avalible command\r\n";
-
-	const char *username = "user";
+	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
+	const char *BAD_COMMAND		= "INFO: That is not a command\r\n";
+	const char *NOT_IMPLEMENTED	= "INFO: Not implemented\r\n";
+	const char *USERNAME		= "Anonymous";
 
 	bool TERMINATE_RECEIVING = false;
 
@@ -55,18 +55,28 @@ void conn_handler( int client_socket )
 		int bytes = recv(client_socket, buff, 2048, 0);
 		buff[bytes] = '\0';
 
-		// TODO: HANDLE HERE THE CHANNELS AND SENDERS
+		// TODO: HANDLE HERE THE CHANNELS AND COMMANDS
 			
 		std::string query = buff;
 
 		if ( buff[0] == ':' ) {
-			
+
 			if ( query.find("exit") == 1 ) {
 				TERMINATE_RECEIVING = true;
 				sendall(BYE_MESSAGE, client_socket);
+				std::cout << "INFO: User disconnected" << std::endl;
 
 			} else if ( query.find("help") == 1 ) {
 				send(client_socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
+
+			} else if ( query.find("name") == 1 ) {
+				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+
+			} else if ( query.find("sendto") == 1 ) {
+				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+
+			} else if ( query.find("listusers") == 1 ) {
+				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
 
 			} else {
 				send(client_socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
@@ -74,11 +84,11 @@ void conn_handler( int client_socket )
 			};
 
 		} else {
-
-			sendall(buff, client_socket);
+			
+			std::string MESSAGE_AND_USERNAME = (std::string)USERNAME + ": " + (std::string)buff;
+			sendall(MESSAGE_AND_USERNAME.c_str(), client_socket);
 
 		};
-
 
 	};
 	
