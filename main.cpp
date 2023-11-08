@@ -22,7 +22,7 @@ int sendall( const char *MESSAGE, int actual_client )
 {
 	for ( auto client : CLIENTS) {
 		if ( actual_client != client) {
-			send(client, MESSAGE, sizeof(MESSAGE), 0);
+			send(client, MESSAGE, strlen(MESSAGE), 0);
 		};
 	};
 	return 0;
@@ -34,8 +34,9 @@ void conn_handler( int client_socket )
 {
 	CLIENTS.push_back(client_socket);
 
-	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type exit to leave \r\n";
-	const char *BYE_MESSAGE		= "\nINFO: User disconnected \r\n";
+	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
+	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
+	const char *HELP_MESSAGE	= "HELP Commands avalible:\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
 
 	bool TERMINATE_RECEIVING = false;
 
@@ -50,15 +51,25 @@ void conn_handler( int client_socket )
 		char buff[2048];
 		int bytes = recv(client_socket, buff, 2048, 0);
 		buff[bytes] = '\0';
-		
-		if ( strcoll(buff, "exit") == 13 ) {
-			TERMINATE_RECEIVING = true;
-			sendall(BYE_MESSAGE, client_socket);
-		};
 
 		// TODO: HANDLE HERE THE CHANNELS AND SENDERS
 
-		sendall(buff, client_socket);
+		if ( buff[0] == ':' ) {
+
+			if ( strcoll(buff, ":exit") == 13 ) {
+				TERMINATE_RECEIVING = true;
+				sendall(BYE_MESSAGE, client_socket);
+			};
+
+			if ( strcoll(buff, ":help") == 13 ) {
+				send(client_socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
+			};
+
+		} else {
+
+			sendall(buff, client_socket);
+
+		};
 
 	};
 	
