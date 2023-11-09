@@ -86,11 +86,11 @@ void conn_handler( int client_socket )
 		if ( buff[0] == ':' ) {
 
 			if ( query.find("exit") == 1 ) {
-				free(new_client.username);
 				remcli(new_client.socket);
 				TERMINATE_RECEIVING = true;
 				sendall(BYE_MESSAGE, new_client.socket);
 				std::cout << "INFO: " << new_client.username << " disconnected" << std::endl;
+				free(new_client.username);
 
 			} else if ( query.find("help") == 1 ) {
 				send(new_client.socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
@@ -99,7 +99,8 @@ void conn_handler( int client_socket )
 				char *name_comm = strtok(buff, " ");
 				char *name_name = strtok(NULL, " ");
 
-				strcpy(new_client.username, name_name); // Make the \n go away ( the problem with the name is the \n )
+				name_name[strcspn(name_name, "\n")-1] = '\0';
+				strcpy(new_client.username, name_name);
 
 				send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
 
