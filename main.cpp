@@ -21,7 +21,7 @@ std::vector<int> CLIENTS;
 struct client {
 
 	int socket;
-	const char* username;
+	char* username;
 
 };
 
@@ -53,12 +53,14 @@ void conn_handler( int client_socket )
 	
 	client new_client;
 	new_client.socket = client_socket;
-	new_client.username = "Anonymous";
-
+	new_client.username = (char *) malloc(sizeof(char *)*10);
+	
+	strcpy(new_client.username, "Anonymous");
 	CLIENTS.push_back(client_socket);
 
 	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :whoami SEE WHO YOU ARE\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
 	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
+	const char *CHANGE_NAME		= "INFO: Changed nace successfully\r\n";
 	const char *BAD_COMMAND		= "INFO: That is not a command\r\n";
 	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
 	const char *NOT_IMPLEMENTED	= "INFO: Not implemented\r\n";
@@ -84,6 +86,7 @@ void conn_handler( int client_socket )
 		if ( buff[0] == ':' ) {
 
 			if ( query.find("exit") == 1 ) {
+				free(new_client.username);
 				remcli(new_client.socket);
 				TERMINATE_RECEIVING = true;
 				sendall(BYE_MESSAGE, new_client.socket);
@@ -93,7 +96,12 @@ void conn_handler( int client_socket )
 				send(new_client.socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
 
 			} else if ( query.find("name") == 1 ) {
-				send(new_client.socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+				char *name_comm = strtok(buff, " ");
+				char *name_name = strtok(NULL, " ");
+
+				strcpy(new_client.username, name_name); // Make the \n go away ( the problem with the name is the \n )
+
+				send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
 
 			} else if ( query.find("sendto") == 1 ) {
 				char *sendto_comm = strtok(buff, " ");
