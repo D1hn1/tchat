@@ -19,8 +19,10 @@ socklen_t* peer_size;
 std::vector<int> CLIENTS;
 
 struct client {
+
 	int socket;
 	const char* username;
+
 };
 
 int sendall( const char *MESSAGE, int actual_client )
@@ -53,7 +55,7 @@ void conn_handler( int client_socket )
 	new_client.socket = client_socket;
 	new_client.username = "Anonymous";
 
-	CLIENTS.push_back(new_client.socket);
+	CLIENTS.push_back(client_socket);
 
 	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :whoami SEE WHO YOU ARE\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
 	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
@@ -94,7 +96,7 @@ void conn_handler( int client_socket )
 				send(new_client.socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
 
 			} else if ( query.find("sendto") == 1 ) {
-				char *sendto_first = strtok(buff, " ");
+				char *sendto_comm = strtok(buff, " ");
 				char *sendto_user = strtok(NULL, " ");
 				char *sendto_message = strtok(NULL, " ");
 				std::string final_sendto_message = "";
@@ -105,7 +107,7 @@ void conn_handler( int client_socket )
 					sendto_message = strtok(NULL, " ");
 				};
 
-				std::string SENDTO_MESSAGE_AND_USERNAME = "PRIVATE: " + (std::string)new_client.username + ": " + final_sendto_message;
+				std::string SENDTO_MESSAGE_AND_USERNAME = "PRIVATE " + (std::string)new_client.username + ": " + final_sendto_message + "\r";
 				send(atoi(sendto_user), SENDTO_MESSAGE_AND_USERNAME.c_str(), strlen(SENDTO_MESSAGE_AND_USERNAME.c_str()), 0);
 
 			} else if ( query.find("whoami") == 1 ) {
@@ -127,7 +129,7 @@ void conn_handler( int client_socket )
 
 		} else {
 			
-			std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff;
+			std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff + "\r";
 			sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket);
 
 		};
