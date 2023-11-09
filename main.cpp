@@ -18,6 +18,11 @@ socklen_t* peer_size;
 
 std::vector<int> CLIENTS;
 
+struct client {
+	int socket;
+	const char* username;
+};
+
 int sendall( const char *MESSAGE, int actual_client )
 {
 	for ( auto client : CLIENTS) {
@@ -34,7 +39,7 @@ int remcli( int actual_client ) {
 
 	for ( int x = 0; x < array_size; x++ ) {
 		if ( CLIENTS[x] == actual_client ) {
-			CLIENTS.erase(x);
+			CLIENTS.erase(CLIENTS.begin()+x);
 		};
 	};
 	
@@ -43,27 +48,31 @@ int remcli( int actual_client ) {
 
 void conn_handler( int client_socket )
 {
-	CLIENTS.push_back(client_socket);
+	
+	client new_client;
+	new_client.socket = client_socket;
+	new_client.username = "Anonymous";
 
+	CLIENTS.push_back(new_client.socket);
+
+	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :whoami SEE WHO YOU ARE\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
 	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
-	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
-	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
 	const char *BAD_COMMAND		= "INFO: That is not a command\r\n";
+	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
 	const char *NOT_IMPLEMENTED	= "INFO: Not implemented\r\n";
-	const char *USERNAME		= "Anonymous";
 
-	bool TERMINATE_RECEIVING = false;
-
-	int hello_message = send(client_socket, HELLO_MESSAGE, strlen(HELLO_MESSAGE), 0);
+	int hello_message = send(new_client.socket, HELLO_MESSAGE, strlen(HELLO_MESSAGE), 0);
 
 	if ( hello_message == strlen(HELLO_MESSAGE) ) { 
 		std::cout << "INFO: Sent hello message" << std::endl;
 	};
+
+	bool TERMINATE_RECEIVING = false;
 	
 	while ( TERMINATE_RECEIVING != true ) {
 		
 		char buff[2048];
-		int bytes = recv(client_socket, buff, 2048, 0);
+		int bytes = recv(new_client.socket, buff, 2048, 0);
 		buff[bytes] = '\0';
 
 		// TODO: HANDLE HERE THE CHANNELS AND COMMANDS
@@ -73,32 +82,53 @@ void conn_handler( int client_socket )
 		if ( buff[0] == ':' ) {
 
 			if ( query.find("exit") == 1 ) {
-				remcli(client_socket);
+				remcli(new_client.socket);
 				TERMINATE_RECEIVING = true;
-				sendall(BYE_MESSAGE, client_socket);
-				std::cout << "INFO: User disconnected" << std::endl;
+				sendall(BYE_MESSAGE, new_client.socket);
+				std::cout << "INFO: " << new_client.username << " disconnected" << std::endl;
 
 			} else if ( query.find("help") == 1 ) {
-				send(client_socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
+				send(new_client.socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
 
 			} else if ( query.find("name") == 1 ) {
-				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+				send(new_client.socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
 
 			} else if ( query.find("sendto") == 1 ) {
-				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+				char *sendto_first = strtok(buff, " ");
+				char *sendto_user = strtok(NULL, " ");
+				char *sendto_message = strtok(NULL, " ");
+				std::string final_sendto_message = "";
+
+				while ( sendto_message != NULL ) {
+					final_sendto_message.insert(final_sendto_message.size(), sendto_message);
+					final_sendto_message.insert(final_sendto_message.size(), " ");
+					sendto_message = strtok(NULL, " ");
+				};
+
+				std::string SENDTO_MESSAGE_AND_USERNAME = "PRIVATE: " + (std::string)new_client.username + ": " + final_sendto_message;
+				send(atoi(sendto_user), SENDTO_MESSAGE_AND_USERNAME.c_str(), strlen(SENDTO_MESSAGE_AND_USERNAME.c_str()), 0);
+
+			} else if ( query.find("whoami") == 1 ) {
+				std::string whoami = std::to_string(new_client.socket);
+				send(new_client.socket, whoami.c_str(), strlen(whoami.c_str()), 0);
+				send(new_client.socket, "\n", 2, 0);
 
 			} else if ( query.find("listusers") == 1 ) {
-				send(client_socket, NOT_IMPLEMENTED, strlen(NOT_IMPLEMENTED), 0);
+				for ( int x = 0; x < CLIENTS.size(); x++ ) {
+					std::string cli = std::to_string(CLIENTS[x]);
+					send(new_client.socket, cli.c_str(), strlen(cli.c_str()), 0);
+					send(new_client.socket, "\n", 2, 0);
+				};
 
 			} else {
-				send(client_socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
+				send(new_client.socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
 
 			};
 
 		} else {
 			
-			std::string MESSAGE_AND_USERNAME = (std::string)USERNAME + ": " + (std::string)buff;
-			sendall(MESSAGE_AND_USERNAME.c_str(), client_socket);
+			std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff;
+			sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket);
 
 		};
 
