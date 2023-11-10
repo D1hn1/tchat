@@ -106,7 +106,7 @@ void conn_handler( int client_socket )
 					name_name[strcspn(name_name, "\n")-1] = '\0';
 					strcpy(new_client.username, name_name);
 					send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
-				}
+				};
 
 			} else if ( query.find("showch") == 1 ) {
 				std::string str_channel= std::to_string(new_client.channel);
