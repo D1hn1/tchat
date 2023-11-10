@@ -16,20 +16,23 @@ struct sockaddr_in in_addr;
 sockaddr* peer_ip;
 socklen_t* peer_size;
 
-std::vector<int> CLIENTS;
-
 struct client {
 
 	int socket;
+	int channel;
 	char* username;
 
 };
 
-int sendall( const char *MESSAGE, int actual_client )
+std::vector<client> CLIENTS;
+
+int sendall( const char *MESSAGE, int actual_client, int channel )
 {
 	for ( auto client : CLIENTS) {
-		if ( actual_client != client) {
-			send(client, MESSAGE, strlen(MESSAGE), 0);
+		if ( actual_client != client.socket ) {
+			if ( client.channel == channel ) {
+				send(client.socket, MESSAGE, strlen(MESSAGE), 0);
+			};
 		};
 	};
 	return 0;
@@ -40,7 +43,7 @@ int remcli( int actual_client ) {
 	int array_size = CLIENTS.size();
 
 	for ( int x = 0; x < array_size; x++ ) {
-		if ( CLIENTS[x] == actual_client ) {
+		if ( CLIENTS[x].socket == actual_client ) {
 			CLIENTS.erase(CLIENTS.begin()+x);
 		};
 	};
@@ -52,15 +55,17 @@ void conn_handler( int client_socket )
 {
 	
 	client new_client;
+	new_client.channel = 1;
 	new_client.socket = client_socket;
 	new_client.username = (char *) malloc(sizeof(char *)*10);
 	
-	strcpy(new_client.username, "Anonymous");
-	CLIENTS.push_back(client_socket);
+	strcpy(new_client.username, "User");
+	CLIENTS.push_back(new_client);
 
-	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :whoami SEE WHO YOU ARE\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
-	const char *HELLO_MESSAGE 	= "\nTchat v1.0\nINFO: Type :help to see all the commands\r\n";
-	const char *CHANGE_NAME		= "INFO: Changed nace successfully\r\n";
+	const char *HELP_MESSAGE	= "\nHELP Commands avalible:\n    :showch SHOW YOUR CURRENT CHANNEL\n    :channel CHANGE YOUR CHANNEL\n    :whoami SEE WHO YOU ARE\n    :sendto SEND A MSG TO A USER\n    :listusers LIST CONNECTED USERS\n    :name CHANGE YOUR NAME\n    :exit EXITS\n    :help DISPLAYS THE HELP\r\n";
+	const char *HELLO_MESSAGE 	= "\nTchat v1.1\nINFO: Type :help to see all the commands\r\n";
+	const char *CHANN_CHANGE	= "INFO: Changed channel successfully\r\n";
+	const char *CHANGE_NAME		= "INFO: Changed name successfully\r\n";
 	const char *BAD_COMMAND		= "INFO: That is not a command\r\n";
 	const char *BYE_MESSAGE		= "INFO: User disconnected \r\n";
 	const char *NOT_IMPLEMENTED	= "INFO: Not implemented\r\n";
@@ -79,8 +84,6 @@ void conn_handler( int client_socket )
 		int bytes = recv(new_client.socket, buff, 2048, 0);
 		buff[bytes] = '\0';
 
-		// TODO: HANDLE HERE THE CHANNELS AND COMMANDS
-			
 		std::string query = buff;
 
 		if ( buff[0] == ':' ) {
@@ -88,7 +91,7 @@ void conn_handler( int client_socket )
 			if ( query.find("exit") == 1 ) {
 				remcli(new_client.socket);
 				TERMINATE_RECEIVING = true;
-				sendall(BYE_MESSAGE, new_client.socket);
+				sendall(BYE_MESSAGE, new_client.socket, new_client.channel);
 				std::cout << "INFO: " << new_client.username << " disconnected" << std::endl;
 				free(new_client.username);
 
@@ -103,6 +106,19 @@ void conn_handler( int client_socket )
 				strcpy(new_client.username, name_name);
 
 				send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
+
+			} else if ( query.find("showch") == 1 ) {
+				std::string str_channel= std::to_string(new_client.channel);
+				const char *str_final_channel = str_channel.c_str();
+				send(new_client.socket, str_final_channel, strlen(str_final_channel), 0);
+				send(new_client.socket, "\n", 2, 0);
+
+			} else if ( query.find("channel") == 1 ) {
+				char *channel_comm = strtok(buff, " ");
+				char *channel_num = strtok(NULL, " ");
+
+				new_client.channel = atoi(channel_num);
+				send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
 
 			} else if ( query.find("sendto") == 1 ) {
 				char *sendto_comm = strtok(buff, " ");
@@ -120,16 +136,30 @@ void conn_handler( int client_socket )
 				send(atoi(sendto_user), SENDTO_MESSAGE_AND_USERNAME.c_str(), strlen(SENDTO_MESSAGE_AND_USERNAME.c_str()), 0);
 
 			} else if ( query.find("whoami") == 1 ) {
-				std::string whoami = std::to_string(new_client.socket);
-				send(new_client.socket, whoami.c_str(), strlen(whoami.c_str()), 0);
+				send(new_client.socket, new_client.username, strlen(new_client.username), 0);
 				send(new_client.socket, "\n", 2, 0);
 
 			} else if ( query.find("listusers") == 1 ) {
-				for ( int x = 0; x < CLIENTS.size(); x++ ) {
-					std::string cli = std::to_string(CLIENTS[x]);
-					send(new_client.socket, cli.c_str(), strlen(cli.c_str()), 0);
+
+				const char *listusers_banner = "\nID USERNAME CHANNEL\n\n";
+				send(new_client.socket, listusers_banner, strlen(listusers_banner), 0);
+
+				for ( auto user : CLIENTS ) {
+					
+					std::string listusers_socket = std::to_string(user.socket);
+					std::string listusers_channel = std::to_string(user.channel);
+
+					send(new_client.socket, listusers_socket.c_str(), strlen(listusers_socket.c_str()), 0);
+					send(new_client.socket, "	", strlen("	"), 0);
+					send(new_client.socket, user.username, strlen(user.username), 0);
+					send(new_client.socket, "	", strlen("	"), 0);
+					send(new_client.socket, listusers_channel.c_str(), strlen(listusers_channel.c_str()), 0);
+
 					send(new_client.socket, "\n", 2, 0);
+
 				};
+
+				send(new_client.socket, "\n", 2, 0);
 
 			} else {
 				send(new_client.socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
@@ -139,7 +169,7 @@ void conn_handler( int client_socket )
 		} else {
 			
 			std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff + "\r";
-			sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket);
+			sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket, new_client.channel);
 
 		};
 
