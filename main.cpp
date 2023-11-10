@@ -101,11 +101,12 @@ void conn_handler( int client_socket )
 			} else if ( query.find("name") == 1 ) {
 				char *name_comm = strtok(buff, " ");
 				char *name_name = strtok(NULL, " ");
-
-				name_name[strcspn(name_name, "\n")-1] = '\0';
-				strcpy(new_client.username, name_name);
-
-				send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
+				
+				if ( name_name ) {
+					name_name[strcspn(name_name, "\n")-1] = '\0';
+					strcpy(new_client.username, name_name);
+					send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
+				}
 
 			} else if ( query.find("showch") == 1 ) {
 				std::string str_channel= std::to_string(new_client.channel);
@@ -116,9 +117,11 @@ void conn_handler( int client_socket )
 			} else if ( query.find("channel") == 1 ) {
 				char *channel_comm = strtok(buff, " ");
 				char *channel_num = strtok(NULL, " ");
-
-				new_client.channel = atoi(channel_num);
-				send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
+				
+				if ( channel_num ) {
+					new_client.channel = atoi(channel_num);
+					send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
+				};
 
 			} else if ( query.find("sendto") == 1 ) {
 				char *sendto_comm = strtok(buff, " ");
