@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 
 #define LISTEN_BACKLOG 50
+#define IP INADDR_LOOPBACK
+#define PORT 1010
 
 // INADDR_ANY
 // INADDR_LOOPBACK
@@ -190,9 +192,12 @@ int main()
 		return 1;
 	};
 
+	int HTPORT = htons(PORT);
+	int HTIP = htonl(IP);
+
 	in_addr.sin_family = AF_INET;
-	in_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	in_addr.sin_port = htons(1010);
+	in_addr.sin_addr.s_addr = HTIP;
+	in_addr.sin_port = HTPORT;
 	
 	int tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -204,11 +209,11 @@ int main()
 	int binding = bind(tcp_socket, (sockaddr*)&in_addr, sizeof(in_addr));
 
 	if ( binding == -1 ) {
-		std::cout << "ERROR: Could not bind to port" << std::endl;
+		std::cout << "ERROR: Could not bind to port: " << PORT << std::endl;
 		exit(1);
 	};
 
-	std::cout << "INFO: Listening on port 1010" << std::endl;
+	std::cout << "INFO: Listening on port: " << PORT << std::endl;
 
 	listen(tcp_socket, LISTEN_BACKLOG);
 
