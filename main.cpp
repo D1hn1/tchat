@@ -134,9 +134,8 @@ void conn_handler( int client_socket )
 					if ( channel_num ) {
 						new_client.channel = atoi(channel_num);
 						send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
+						updateChannel(new_client.socket, new_client.channel);
 					};
-
-					updateChannel(new_client.socket, new_client.channel);
 
 				} else if ( query.find("sendto") == 1 ) {
 					char *sendto_comm = strtok(buff, " ");
