@@ -53,6 +53,15 @@ int remcli( int actual_client ) {
 	return 0;
 }
 
+void updateChannel ( int actual_cl_sock, int new_channel )
+{
+	for ( int x = 0; x < CLIENTS.size(); x++ ) {
+		if ( CLIENTS[x].socket == actual_cl_sock ) {
+			CLIENTS[x].channel = new_channel;
+		};
+	};
+}
+
 void conn_handler( int client_socket )
 {
 	
@@ -81,100 +90,106 @@ void conn_handler( int client_socket )
 	bool TERMINATE_RECEIVING = false;
 	
 	while ( TERMINATE_RECEIVING != true ) {
-		
+
 		char buff[2048];
 		int bytes = recv(new_client.socket, buff, 2048, 0);
 		buff[bytes] = '\0';
 
 		std::string query = buff;
 
-		if ( buff[0] == ':' ) {
+		if ( query.size() > 2 ) {
 
-			if ( query.find("exit") == 1 ) {
-				remcli(new_client.socket);
-				TERMINATE_RECEIVING = true;
-				sendall(BYE_MESSAGE, new_client.socket, new_client.channel);
-				std::cout << "INFO: " << new_client.username << " disconnected" << std::endl;
-				free(new_client.username);
+			if ( buff[0] == ':' ) {
 
-			} else if ( query.find("help") == 1 ) {
-				send(new_client.socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
+				if ( query.find("exit") == 1 ) {
+					remcli(new_client.socket);
+					TERMINATE_RECEIVING = true;
+					sendall(BYE_MESSAGE, new_client.socket, new_client.channel);
+					std::cout << "INFO: " << new_client.username << " disconnected" << std::endl;
+					free(new_client.username);
 
-			} else if ( query.find("name") == 1 ) {
-				char *name_comm = strtok(buff, " ");
-				char *name_name = strtok(NULL, " ");
-				
-				if ( name_name ) {
-					name_name[strcspn(name_name, "\n")-1] = '\0';
-					strcpy(new_client.username, name_name);
-					send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
-				};
+				} else if ( query.find("help") == 1 ) {
+					send(new_client.socket, HELP_MESSAGE, strlen(HELP_MESSAGE), 0);
 
-			} else if ( query.find("showch") == 1 ) {
-				std::string str_channel= std::to_string(new_client.channel);
-				const char *str_final_channel = str_channel.c_str();
-				send(new_client.socket, str_final_channel, strlen(str_final_channel), 0);
-				send(new_client.socket, "\n", 2, 0);
-
-			} else if ( query.find("channel") == 1 ) {
-				char *channel_comm = strtok(buff, " ");
-				char *channel_num = strtok(NULL, " ");
-				
-				if ( channel_num ) {
-					new_client.channel = atoi(channel_num);
-					send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
-				};
-
-			} else if ( query.find("sendto") == 1 ) {
-				char *sendto_comm = strtok(buff, " ");
-				char *sendto_user = strtok(NULL, " ");
-				char *sendto_message = strtok(NULL, " ");
-				std::string final_sendto_message = "";
-
-				while ( sendto_message != NULL ) {
-					final_sendto_message.insert(final_sendto_message.size(), sendto_message);
-					final_sendto_message.insert(final_sendto_message.size(), " ");
-					sendto_message = strtok(NULL, " ");
-				};
-
-				std::string SENDTO_MESSAGE_AND_USERNAME = "PRIVATE " + (std::string)new_client.username + ": " + final_sendto_message + "\r";
-				send(atoi(sendto_user), SENDTO_MESSAGE_AND_USERNAME.c_str(), strlen(SENDTO_MESSAGE_AND_USERNAME.c_str()), 0);
-
-			} else if ( query.find("whoami") == 1 ) {
-				send(new_client.socket, new_client.username, strlen(new_client.username), 0);
-				send(new_client.socket, "\n", 2, 0);
-
-			} else if ( query.find("listusers") == 1 ) {
-
-				const char *listusers_banner = "\nID USERNAME CHANNEL\n\n";
-				send(new_client.socket, listusers_banner, strlen(listusers_banner), 0);
-
-				for ( auto user : CLIENTS ) {
+				} else if ( query.find("name") == 1 ) {
+					char *name_comm = strtok(buff, " ");
+					char *name_name = strtok(NULL, " ");
 					
-					std::string listusers_socket = std::to_string(user.socket);
-					std::string listusers_channel = std::to_string(user.channel);
+					if ( name_name ) {
+						name_name[strcspn(name_name, "\n")-1] = '\0';
+						strcpy(new_client.username, name_name);
+						send(new_client.socket, CHANGE_NAME, strlen(CHANGE_NAME), 0);
+					};
 
-					send(new_client.socket, listusers_socket.c_str(), strlen(listusers_socket.c_str()), 0);
-					send(new_client.socket, "	", strlen("	"), 0);
-					send(new_client.socket, user.username, strlen(user.username), 0);
-					send(new_client.socket, "	", strlen("	"), 0);
-					send(new_client.socket, listusers_channel.c_str(), strlen(listusers_channel.c_str()), 0);
+				} else if ( query.find("showch") == 1 ) {
+					std::string str_channel= std::to_string(new_client.channel);
+					const char *str_final_channel = str_channel.c_str();
+					send(new_client.socket, str_final_channel, strlen(str_final_channel), 0);
+					send(new_client.socket, "\n", 2, 0);
+
+				} else if ( query.find("channel") == 1 ) {
+					char *channel_comm = strtok(buff, " ");
+					char *channel_num = strtok(NULL, " ");
+					
+					if ( channel_num ) {
+						new_client.channel = atoi(channel_num);
+						send(new_client.socket, CHANN_CHANGE, strlen(CHANN_CHANGE), 0);
+					};
+
+					updateChannel(new_client.socket, new_client.channel);
+
+				} else if ( query.find("sendto") == 1 ) {
+					char *sendto_comm = strtok(buff, " ");
+					char *sendto_user = strtok(NULL, " ");
+					char *sendto_message = strtok(NULL, " ");
+					std::string final_sendto_message = "";
+
+					while ( sendto_message != NULL ) {
+						final_sendto_message.insert(final_sendto_message.size(), sendto_message);
+						final_sendto_message.insert(final_sendto_message.size(), " ");
+						sendto_message = strtok(NULL, " ");
+					};
+
+					std::string SENDTO_MESSAGE_AND_USERNAME = "PRIVATE " + (std::string)new_client.username + ": " + final_sendto_message + "\r";
+					send(atoi(sendto_user), SENDTO_MESSAGE_AND_USERNAME.c_str(), strlen(SENDTO_MESSAGE_AND_USERNAME.c_str()), 0);
+
+				} else if ( query.find("whoami") == 1 ) {
+					send(new_client.socket, new_client.username, strlen(new_client.username), 0);
+					send(new_client.socket, "\n", 2, 0);
+
+				} else if ( query.find("listusers") == 1 ) {
+
+					const char *listusers_banner = "\nID USERNAME CHANNEL\n\n";
+					send(new_client.socket, listusers_banner, strlen(listusers_banner), 0);
+
+					for ( auto user : CLIENTS ) {
+						
+						std::string listusers_socket = std::to_string(user.socket);
+						std::string listusers_channel = std::to_string(user.channel);
+
+						send(new_client.socket, listusers_socket.c_str(), strlen(listusers_socket.c_str()), 0);
+						send(new_client.socket, "	", strlen("	"), 0);
+						send(new_client.socket, user.username, strlen(user.username), 0);
+						send(new_client.socket, "	", strlen("	"), 0);
+						send(new_client.socket, listusers_channel.c_str(), strlen(listusers_channel.c_str()), 0);
+
+						send(new_client.socket, "\n", 2, 0);
+
+					};
 
 					send(new_client.socket, "\n", 2, 0);
 
+				} else {
+					send(new_client.socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
+
 				};
 
-				send(new_client.socket, "\n", 2, 0);
-
 			} else {
-				send(new_client.socket, BAD_COMMAND, strlen(BAD_COMMAND), 0);
+				
+				std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff + "\r";
+				sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket, new_client.channel);
 
 			};
-
-		} else {
-			
-			std::string MESSAGE_AND_USERNAME = (std::string)new_client.username + ": " + (std::string)buff + "\r";
-			sendall(MESSAGE_AND_USERNAME.c_str(), new_client.socket, new_client.channel);
 
 		};
 
